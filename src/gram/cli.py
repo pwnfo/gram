@@ -5,7 +5,31 @@ from gram.args import create_parser
 from gram.logger import log
 from gram.encoders.registry import encoders
 
+from typing import Any, Iterator, IO
+from contextlib import contextmanager
+
 help_message = "use 'gram list' to see all available encoders."
+
+
+@contextmanager
+def s_open(file: str, mode: str = "xb", **kwargs: Any) -> Iterator[IO[Any] | None]:
+    """Opens file and handles possible errors."""
+    fp = None
+    try:
+        fp = open(file, mode, **kwargs)
+        yield fp
+    except PermissionError:
+        log.error(f"no permission for '{file}'.")
+        yield None
+    except FileExistsError:
+        log.error(f"file '{file}' already exists.")
+        yield None
+    except Exception as e:
+        log.exception(f"unexpected error: {e}.")
+        yield None
+    finally:
+        if fp:
+            fp.close()
 
 
 def main() -> int:
@@ -64,12 +88,11 @@ def main() -> int:
                     sys.stdout.buffer.write(result + (b"\n" if args.bline else b""))
                     sys.stdout.flush()
                 else:
-                    with open(args.output, "xb") as fp:
+                    with s_open(args.output, "xb") as fp:
+                        if fp is None:
+                            return 1
                         fp.write(result)
                 return 0
-    except FileExistsError:
-        log.error(f"error: file '{args.output}' already exists.")
-        return 1
     except Exception as err:
         log.error(f"error: {err}")
         return 1
