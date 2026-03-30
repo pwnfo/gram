@@ -10,13 +10,11 @@ class Encoder(ABC):
     def __init__(
         self,
         data: bytes,
-        *extra: str,
         encoding: str = "utf-8",
         **kwargs: Any,
     ):
         self.data = data
         self.encoding = encoding
-        self.extra = extra
         self.kwargs = kwargs
 
     @abstractmethod
