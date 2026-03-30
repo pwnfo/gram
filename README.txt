@@ -19,16 +19,16 @@ OPTIONS
        -e encoding  set text encoding (default: utf-8)
 
 ENCODERS
-       a85        ASCII85
+       a85        Ascii85
        b32        Base32
-       b64        Base64           [ -f lbreak=[mime|pem] ]
-       bin        Binary String    [ -f sep=N ]
-       hex        Hexadecimal      [ -f sep=N -f upper ]
-       html       HTML Escape
+       b64        Base64  [ -f lbreak=[mime|pem] ]
+       bin        Binary String  [ -f sep=N ]
+       hex        Hexadecimal String  [ -f sep=N -f upper ]
+       html       HTML Escape  [ -f full ]
        puny       Punycode IDN
-       quopri     Quoted-printable
-       unicode    Unicode Escape   [ -f format=[short|long|point] -f lower ]
-       url        URL Encoding     [ -f plus ]
+       quopri     Quoted-printable  [ -f full ]
+       unicode    Unicode Escape  [ -f format=[short|long|point] -f lower ]
+       url        URL Encoding  [ -f plus -f full ]
 
 EXAMPLES
        echo "hello" | gram b64 -b
