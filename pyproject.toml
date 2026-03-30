@@ -1,6 +1,6 @@
 [project]
 name = "gram-encoder"
-version = "0.1.0"
+version = "0.1.1"
 description = "Gram is a simple and efficient data encoding utility."
 authors = [{ name = "Ryan R.", email = "pwnfo@proton.me" }]
 readme = "README.txt"
