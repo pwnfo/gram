@@ -5,16 +5,25 @@ from typing import Any
 import quopri
 
 
+def full_encode(content: bytes) -> str:
+    return "".join(f"={b:02X}" for b in content)
+
+
 @register
 class QuotedPrintableEncoder(Encoder):
     name = "quopri"
     complete_name = "Quoted-printable"
+    usage = "-f full"
 
     def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
         self.data = data
         self.encoding = encoding
 
+        self.full = kwargs.get("full") is not None
+
     def encode(self) -> str:
+        if self.full:
+            return full_encode(self.data)
         return quopri.encodestring(self.data).decode(self.encoding)
 
     def decode(self) -> bytes:

@@ -98,9 +98,6 @@ wheels = [
 name = "gram-encoder"
 version = "0.0.1"
 source = { editable = "." }
-dependencies = [
-    { name = "pre-commit" },
-]
 
 [package.dev-dependencies]
 dev = [
@@ -110,7 +107,6 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pre-commit", specifier = ">=4.5.1" }]
 
 [package.metadata.requires-dev]
 dev = [
