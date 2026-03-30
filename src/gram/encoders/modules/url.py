@@ -27,15 +27,15 @@ class URLEncoder(Encoder):
         if self.full:
             return quote_full(self.text, encoding=self.encoding)
         if self.plus:
-            return quote_plus(self.text)
+            return quote_plus(self.text, encoding=self.encoding)
 
-        return quote(self.text)
+        return quote(self.text, encoding=self.encoding)
 
     def decode(self) -> str:
         if self.plus:
-            return unquote_plus(self.text)
+            return unquote_plus(self.text, encoding=self.encoding)
 
-        return unquote(self.text)
+        return unquote(self.text, encoding=self.encoding)
 
 
 if __name__ == "__main__":
