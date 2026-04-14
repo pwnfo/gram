@@ -1,8 +1,10 @@
+import io
+
 from gram.encoders.base import Encoder
 
 
 def test_encoder(encoder: type[Encoder], phrase: str, encoding: str = "utf-8") -> None:
-    e = encoder(phrase.encode(encoding), encoding=encoding)
+    e = encoder(io.BytesIO(phrase.encode(encoding)), encoding=encoding)
     r = e.encode()
 
     if not isinstance(r, str):
@@ -10,7 +12,7 @@ def test_encoder(encoder: type[Encoder], phrase: str, encoding: str = "utf-8") -
 
     print(f"'{phrase}' ({encoder.name}) -> {r}")
 
-    e = encoder(r.encode(encoding), encoding=encoding)
+    e = encoder(io.BytesIO(r.encode(encoding)), encoding=encoding)
 
     x = e.decode()
 

@@ -1,6 +1,8 @@
 from gram.encoders.registry import register
 from gram.encoders.base import Encoder
-from typing import Any
+import typing
+
+import codecs
 
 
 @register
@@ -8,17 +10,20 @@ class PunycodeEncoder(Encoder):
     name = "puny"
     complete_name = "Punycode IDN"
 
-    def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
-        self.data = data
-        self.encoding = encoding
+    def __init__(
+        self, stream: typing.IO[bytes], encoding: str = "utf-8", **kwargs: typing.Any
+    ):
+        super().__init__(stream, encoding, **kwargs)
 
-        self.text = data.decode(self.encoding)
+    def encode(self) -> typing.Iterator[bytes | str]:
+        for line in self.stream:
+            data = line.decode(self.encoding)
+            yield codecs.encode(data, "punycode")
 
-    def encode(self) -> str:
-        return self.text.encode("idna").decode("ascii")
-
-    def decode(self) -> str:
-        return self.text.encode("ascii").decode("idna")
+    def decode(self) -> typing.Iterator[bytes | str]:
+        for line in self.stream:
+            data = line.decode(self.encoding)
+            yield codecs.decode(data.encode("ascii"), "punycode")
 
 
 if __name__ == "__main__":

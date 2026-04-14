@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any
+
+import typing
 
 
 class Encoder(ABC):
@@ -22,19 +23,19 @@ class Encoder(ABC):
         return " ".join(parts)
 
     def __init__(
-        self,
-        data: bytes,
-        encoding: str = "utf-8",
-        **kwargs: Any,
+        self, stream: typing.IO[bytes], encoding: str = "utf-8", **kwargs: typing.Any
     ):
-        self.data = data
+        self.stream = stream
         self.encoding = encoding
         self.kwargs = kwargs
 
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
     @abstractmethod
-    def encode(self) -> str | bytes:
+    def encode(self) -> typing.Iterator[bytes | str]:
         pass
 
     @abstractmethod
-    def decode(self) -> str | bytes:
+    def decode(self) -> typing.Iterator[bytes | str]:
         pass

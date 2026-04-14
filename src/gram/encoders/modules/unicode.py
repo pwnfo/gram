@@ -1,8 +1,9 @@
 import re
+import typing
 
+from ast import literal_eval
 from gram.encoders.registry import register
 from gram.encoders.base import Encoder
-from typing import Any
 
 
 def decode_point_format(data: str) -> str:
@@ -20,40 +21,54 @@ class UnicodeEncoder(Encoder):
     complete_name = "Unicode Escape"
     options = {"format": ("short", "long", "point"), "lower": bool}
 
-    def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
-        self.data = data
-        self.encoding = encoding
-        self.format = kwargs.get("format")
-        self.lower = kwargs.get("lower", False)
+    def __init__(
+        self, stream: typing.IO[bytes], encoding: str = "utf-8", **kwargs: typing.Any
+    ):
+        super().__init__(stream, encoding, **kwargs)
 
-        self.text = data.decode(self.encoding)
+    def encode(self) -> typing.Iterator[bytes | str]:
+        fmt: str | None = self.kwargs.get("format", None)
+        lower: bool = self.kwargs.get("lower", False)
 
-    def encode(self) -> str:
-        _ = "X"
-        if self.lower:
-            _ = "x"
+        for line in self.stream:
+            data = line.decode(self.encoding)
+            res = ""
+            for char in data:
+                if fmt == "short":
+                    res += f"\\u{ord(char):04X}"
+                elif fmt == "long":
+                    res += f"\\U{ord(char):08X}"
+                elif fmt == "point":
+                    res += f"U+{ord(char):04X} "
+                else:
+                    if ord(char) < 0x10000:
+                        res += f"\\u{ord(char):04X}"
+                    else:
+                        res += f"\\U{ord(char):08X}"
 
-        match self.format:
-            case "short":
-                result = "".join(f"\\u{ord(c):04{_}}" for c in self.text)
-            case "point":
-                result = " ".join(f"U+{ord(c):04{_}}" for c in self.text)
-            case "long":
-                result = "".join(f"\\U{ord(c):08{_}}" for c in self.text)
-            case _:
-                result = "".join(f"\\x{b:02{_}}" for b in self.data)
+            if lower:
+                res = res.lower()
 
-        return result
+            if fmt == "point":
+                res = res.rstrip()
 
-    def decode(self) -> str:
-        if self.format != "point":
-            return (
-                self.data.decode("unicode_escape")
-                .encode("latin1")
-                .decode(self.encoding)
-            )
+            yield res
 
-        return decode_point_format(self.text)
+    def decode(self) -> typing.Iterator[bytes | str]:
+        for line in self.stream:
+            data = line.decode(self.encoding)
+            if "U+" in data.upper():
+                res = ""
+                for m in re.finditer(r"U\+([0-9A-Fa-f]+)", data, re.IGNORECASE):
+                    res += chr(int(m.group(1), 16))
+                yield res
+            else:
+                data = data.replace("\\U", "\\U").replace("\\u", "\\u")
+                safe_str = f'"{data}"'
+                try:
+                    yield literal_eval(safe_str)
+                except Exception:
+                    yield data
 
 
 if __name__ == "__main__":

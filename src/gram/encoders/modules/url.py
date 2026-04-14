@@ -1,8 +1,8 @@
 from gram.encoders.registry import register
 from gram.encoders.base import Encoder
-from typing import Any
+import urllib.parse
 
-from urllib.parse import quote, unquote, quote_plus, unquote_plus
+import typing
 
 
 def quote_full(content: str, encoding: str = "utf-8") -> str:
@@ -15,27 +15,36 @@ class URLEncoder(Encoder):
     complete_name = "URL Encoding"
     options = {"plus": bool, "full": bool}
 
-    def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
-        self.data = data
-        self.encoding = encoding
+    def __init__(
+        self, stream: typing.IO[bytes], encoding: str = "utf-8", **kwargs: typing.Any
+    ):
+        super().__init__(stream, encoding, **kwargs)
 
-        self.text = data.decode(self.encoding)
-        self.plus = kwargs.get("plus", False)
-        self.full = kwargs.get("full", False)
+    def encode(self) -> typing.Iterator[bytes | str]:
+        plus: bool = self.kwargs.get("plus", False)
+        full: bool = self.kwargs.get("full", False)
 
-    def encode(self) -> str:
-        if self.full:
-            return quote_full(self.text, encoding=self.encoding)
-        if self.plus:
-            return quote_plus(self.text, encoding=self.encoding)
+        for line in self.stream:
+            data = line.decode(self.encoding)
+            if full:
+                res = ""
+                for char in data:
+                    res += "%%%02x" % ord(char)
+                yield res
+            elif plus:
+                yield urllib.parse.quote_plus(data)
+            else:
+                yield urllib.parse.quote(data)
 
-        return quote(self.text, encoding=self.encoding)
+    def decode(self) -> typing.Iterator[bytes | str]:
+        plus: bool = self.kwargs.get("plus", False)
 
-    def decode(self) -> str:
-        if self.plus:
-            return unquote_plus(self.text, encoding=self.encoding)
-
-        return unquote(self.text, encoding=self.encoding)
+        for line in self.stream:
+            data = line.decode(self.encoding)
+            if plus:
+                yield urllib.parse.unquote_plus(data)
+            else:
+                yield urllib.parse.unquote(data)
 
 
 if __name__ == "__main__":

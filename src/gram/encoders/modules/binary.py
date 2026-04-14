@@ -1,6 +1,7 @@
 from gram.encoders.registry import register
 from gram.encoders.base import Encoder
-from typing import Any
+
+import typing
 
 
 @register
@@ -9,24 +10,41 @@ class BinaryEncoder(Encoder):
     complete_name = "Binary String"
     options = {"sep": int}
 
-    def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
-        self.data = data
-        self.encoding = encoding
+    def __init__(
+        self, stream: typing.IO[bytes], encoding: str = "utf-8", **kwargs: typing.Any
+    ):
+        super().__init__(stream, encoding, **kwargs)
         self.separator = kwargs.get("sep", 0)
 
-    def encode(self) -> str:
-        result = "".join(format(c, "08b") for c in self.data)
-        if self.separator:
-            return " ".join(
-                result[i : i + self.separator]
-                for i in range(0, len(result), self.separator)
-            )
-        return result
+    def encode(self) -> typing.Iterator[bytes | str]:
+        sep: int | None = self.kwargs.get("sep", None)
 
-    def decode(self) -> bytes:
-        self.data = self.data.replace(b" ", b"").strip()
+        while True:
+            chunk = self.stream.read(4000)
+            if not chunk:
+                break
 
-        return bytes(int(self.data[i : i + 8], 2) for i in range(0, len(self.data), 8))
+            result = ""
+            for byte in chunk:
+                result += bin(byte)[2:].zfill(8)
+
+            if sep is not None:
+                res = []
+                for i in range(0, len(result), sep):
+                    res.append(result[i : i + sep])
+                result = " ".join(res)
+
+            yield result
+
+    def decode(self) -> typing.Iterator[bytes | str]:
+        data_full = self.stream.read().decode(self.encoding)
+        data_full = data_full.replace(" ", "").strip()
+
+        if data_full.startswith("0b"):
+            data_full = data_full[2:]
+
+        n = int(data_full, 2)
+        yield n.to_bytes((n.bit_length() + 7) // 8, "big")
 
 
 if __name__ == "__main__":

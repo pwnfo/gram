@@ -1,4 +1,6 @@
+import io
 import sys
+import typing
 import difflib
 
 from gram.args import create_parser
@@ -61,12 +63,19 @@ def main() -> int:
     try:
         for name, Encoder in encoders.items():
             if args.encoder == name:
-                if args.string is not None:
-                    data = args.string.encode(args.encoding)
+                try:
+                    stdin_empty = sys.stdin.isatty()
+                except Exception:
+                    stdin_empty = True
+
+                if not stdin_empty and args.string is None:
+                    pass
                 else:
-                    try:
-                        data = sys.stdin.buffer.read()
-                    except KeyboardInterrupt:
+                    if not args.string:
+                        log.error(
+                            "error: unable to parse empty input, either pipe stdin or use the '-s' parameter."
+                        )
+                        parser.print_help()
                         return 1
 
                 parsed_kwargs = {}
@@ -75,11 +84,13 @@ def main() -> int:
                     if expected_type is None:
                         log.error(f"error: '{key}' is not a valid option.")
                         return 1
-                    
+
                     try:
                         if isinstance(expected_type, (list, tuple, set)):
                             if val not in expected_type:
-                                log.error(f"error: '{key}' must be [{'|'.join(expected_type)}].")
+                                log.error(
+                                    f"error: '{key}' must be [{'|'.join(expected_type)}]."
+                                )
                                 return 1
                             parsed_kwargs[key] = val
                         elif expected_type is bool:
@@ -96,30 +107,41 @@ def main() -> int:
                         log.error(f"error: '{key}' must be {expected_type.__name__}.")
                         return 1
 
+                stream: typing.IO[bytes]
+                if args.string is not None:
+                    stream = io.BytesIO(args.string.encode(args.encoding))
+                else:
+                    stream = sys.stdin.buffer
+
                 e = Encoder(
-                    data,
+                    stream,
                     **parsed_kwargs,
                     encoding=args.encoding,
                 )
 
-                if args.decode:
-                    result = e.decode()
-                else:
-                    result = e.encode()
+                try:
+                    iterator = e.decode() if args.decode else e.encode()
 
-                if isinstance(result, str):
-                    result = result.encode(args.encoding)
+                    if not isinstance(iterator, Iterator):
+                        iterator = iter([iterator])
 
-                result = bytes(result)
-
-                if args.output is None:
-                    sys.stdout.buffer.write(result + (b"\n" if args.bline else b""))
-                    sys.stdout.flush()
-                else:
-                    with s_open(args.output, "xb") as fp:
-                        if fp is None:
-                            return 1
-                        fp.write(result)
+                    if args.output is None:
+                        for chunk in iterator:
+                            if isinstance(chunk, str):
+                                chunk = chunk.encode(args.encoding)
+                            sys.stdout.buffer.write(chunk)
+                        if args.bline:
+                            sys.stdout.buffer.write(b"\n")
+                    else:
+                        with open(args.output, "wb") as fp:
+                            for chunk in iterator:
+                                if isinstance(chunk, str):
+                                    chunk = chunk.encode(args.encoding)
+                                fp.write(chunk)
+                            if args.bline:
+                                fp.write(b"\n")
+                except KeyboardInterrupt:
+                    return 1
                 return 0
     except Exception as err:
         log.error(f"error: {err}")

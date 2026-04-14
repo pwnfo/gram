@@ -1,7 +1,7 @@
 from gram.encoders.registry import register
 from gram.encoders.base import Encoder
-from typing import Any
 
+import typing
 import base64
 
 
@@ -10,15 +10,21 @@ class Ascii85Encoder(Encoder):
     name = "a85"
     complete_name = "Ascii85"
 
-    def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
-        self.data = data
-        self.encoding = encoding
+    def __init__(
+        self, stream: typing.IO[bytes], encoding: str = "utf-8", **kwargs: typing.Any
+    ):
+        super().__init__(stream, encoding, **kwargs)
 
-    def encode(self) -> str:
-        return base64.a85encode(self.data).decode(self.encoding)
+    def encode(self) -> typing.Iterator[bytes | str]:
+        while True:
+            chunk = self.stream.read(4096)
+            if not chunk:
+                break
+            yield base64.a85encode(chunk).decode(self.encoding)
 
-    def decode(self) -> bytes:
-        return base64.a85decode(self.data)
+    def decode(self) -> typing.Iterator[bytes | str]:
+        data = self.stream.read()
+        yield base64.a85decode(data)
 
 
 if __name__ == "__main__":

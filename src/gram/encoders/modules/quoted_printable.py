@@ -1,7 +1,7 @@
 from gram.encoders.registry import register
 from gram.encoders.base import Encoder
-from typing import Any
 
+import typing
 import quopri
 
 
@@ -15,18 +15,18 @@ class QuotedPrintableEncoder(Encoder):
     complete_name = "Quoted-printable"
     options = {"full": bool}
 
-    def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
-        self.data = data
-        self.encoding = encoding
-        self.full = kwargs.get("full", False)
+    def __init__(
+        self, stream: typing.IO[bytes], encoding: str = "utf-8", **kwargs: typing.Any
+    ):
+        super().__init__(stream, encoding, **kwargs)
 
-    def encode(self) -> str:
-        if self.full:
-            return full_encode(self.data)
-        return quopri.encodestring(self.data).decode(self.encoding)
+    def encode(self) -> typing.Iterator[bytes | str]:
+        for chunk in iter(lambda: self.stream.read(4000), b""):
+            yield quopri.encodestring(chunk)
 
-    def decode(self) -> bytes:
-        return quopri.decodestring(self.data)
+    def decode(self) -> typing.Iterator[bytes | str]:
+        for chunk in iter(lambda: self.stream.read(4000), b""):
+            yield quopri.decodestring(chunk)
 
 
 if __name__ == "__main__":

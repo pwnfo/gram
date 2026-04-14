@@ -1,7 +1,7 @@
 from gram.encoders.registry import register
 from gram.encoders.base import Encoder
-from typing import Any
 
+import typing
 import base64
 
 
@@ -11,25 +11,40 @@ class Base64Encoder(Encoder):
     complete_name = "Base64"
     options = {"lbreak": ("mime", "pem")}
 
-    def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
-        self.data = data
-        self.encoding = encoding
+    def __init__(
+        self, stream: typing.IO[bytes], encoding: str = "utf-8", **kwargs: typing.Any
+    ):
+        super().__init__(stream, encoding, **kwargs)
 
-        self.lbreak = kwargs.get("lbreak")
-        if self.lbreak is not None:
-            self.lbreak = self.lbreak.lower()
+    def encode(self) -> typing.Iterator[bytes | str]:
+        lbreak: str = self.kwargs.get("lbreak", "")
+        chunk_size = 24576
 
-    def encode(self) -> str:
-        result = base64.b64encode(self.data).decode(self.encoding)
-        if self.lbreak == "pem":
-            return "\n".join(result[i : i + 64] for i in range(0, len(result), 64))
-        if self.lbreak == "mime":
-            return "\n".join(result[i : i + 76] for i in range(0, len(result), 76))
+        while True:
+            chunk = self.stream.read(chunk_size)
+            if not chunk:
+                break
 
-        return result
+            res = base64.b64encode(chunk).decode(self.encoding)
 
-    def decode(self) -> bytes:
-        return base64.b64decode(self.data)
+            if lbreak == "mime":
+                res = "\n".join(res[i : i + 76] for i in range(0, len(res), 76)) + "\n"
+            elif lbreak == "pem":
+                res = "\n".join(res[i : i + 64] for i in range(0, len(res), 64)) + "\n"
+
+            yield res
+
+    def decode(self) -> typing.Iterator[bytes | str]:
+        buffer = b""
+        for chunk in iter(lambda: self.stream.read(8192), b""):
+            buffer += chunk.replace(b"\n", b"").replace(b"\r", b"")
+            valid_len = (len(buffer) // 4) * 4
+            if valid_len > 0:
+                valid_chunk = buffer[:valid_len]
+                buffer = buffer[valid_len:]
+                yield base64.b64decode(valid_chunk)
+        if buffer:
+            yield base64.b64decode(buffer + b"=" * ((4 - len(buffer) % 4) % 4))
 
 
 if __name__ == "__main__":

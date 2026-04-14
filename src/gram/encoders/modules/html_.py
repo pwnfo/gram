@@ -1,8 +1,8 @@
 from gram.encoders.registry import register
 from gram.encoders.base import Encoder
-from typing import Any
 
-from html import escape, unescape
+import typing
+import html
 
 
 def full_escape(content: str) -> str:
@@ -15,20 +15,27 @@ class HTMLEncoder(Encoder):
     complete_name = "HTML Escape"
     options = {"full": bool}
 
-    def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
-        self.data = data
-        self.encoding = encoding
+    def __init__(
+        self, stream: typing.IO[bytes], encoding: str = "utf-8", **kwargs: typing.Any
+    ):
+        super().__init__(stream, encoding, **kwargs)
+        self.full = kwargs.get("full", False)
 
-        self.text = data.decode(self.encoding)
-        self.full = kwargs.get("full") is not None
+    def encode(self) -> typing.Iterator[bytes | str]:
+        for line in self.stream:
+            data = line.decode(self.encoding)
+            if self.full:
+                res = ""
+                for char in data:
+                    res += f"&#{ord(char)};"
+                yield res
+            else:
+                yield html.escape(data)
 
-    def encode(self) -> str:
-        if self.full:
-            return full_escape(self.text)
-        return escape(self.text)
-
-    def decode(self) -> str:
-        return unescape(self.text)
+    def decode(self) -> typing.Iterator[bytes | str]:
+        for line in self.stream:
+            data = line.decode(self.encoding)
+            yield html.unescape(data)
 
 
 if __name__ == "__main__":
