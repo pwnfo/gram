@@ -18,13 +18,13 @@ def decode_point_format(data: str) -> str:
 class UnicodeEncoder(Encoder):
     name = "unicode"
     complete_name = "Unicode Escape"
-    usage = "-f format=[short|long|point] -f lower"
+    options = {"format": ("short", "long", "point"), "lower": bool}
 
     def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
         self.data = data
         self.encoding = encoding
         self.format = kwargs.get("format")
-        self.lower = kwargs.get("lower")
+        self.lower = kwargs.get("lower", False)
 
         self.text = data.decode(self.encoding)
 

@@ -13,7 +13,7 @@ def full_escape(content: str) -> str:
 class HTMLEncoder(Encoder):
     name = "html"
     complete_name = "HTML Escape"
-    usage = "-f full"
+    options = {"full": bool}
 
     def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
         self.data = data

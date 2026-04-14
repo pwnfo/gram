@@ -45,9 +45,10 @@ def main() -> int:
     if args.encoder == "list":
         for encoder in encoders.items():
             c = encoder[1]
+            usage_str = c.get_usage()
             log.info(
                 f"gram {encoder[0]:<10} # {c.complete_name}"
-                + ("  [ %s ]" % c.usage if c.usage else "")
+                + (f"  [ {usage_str} ]" if usage_str else "")
             )
 
         return 0
@@ -68,9 +69,36 @@ def main() -> int:
                     except KeyboardInterrupt:
                         return 1
 
+                parsed_kwargs = {}
+                for key, val in extra_options.items():
+                    expected_type = getattr(Encoder, "options", {}).get(key)
+                    if expected_type is None:
+                        log.error(f"error: '{key}' is not a valid option.")
+                        return 1
+                    
+                    try:
+                        if isinstance(expected_type, (list, tuple, set)):
+                            if val not in expected_type:
+                                log.error(f"error: '{key}' must be [{'|'.join(expected_type)}].")
+                                return 1
+                            parsed_kwargs[key] = val
+                        elif expected_type is bool:
+                            if not isinstance(val, bool):
+                                log.error(f"error: '{key}' does not expect a value.")
+                                return 1
+                            parsed_kwargs[key] = val
+                        else:
+                            if isinstance(val, bool) and val is True:
+                                log.error(f"error: '{key}' requires a value.")
+                                return 1
+                            parsed_kwargs[key] = expected_type(val)
+                    except (ValueError, TypeError):
+                        log.error(f"error: '{key}' must be {expected_type.__name__}.")
+                        return 1
+
                 e = Encoder(
                     data,
-                    **extra_options,
+                    **parsed_kwargs,
                     encoding=args.encoding,
                 )
 

@@ -7,12 +7,12 @@ from typing import Any
 class BinaryEncoder(Encoder):
     name = "bin"
     complete_name = "Binary String"
-    usage = "-f sep=N"
+    options = {"sep": int}
 
     def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
         self.data = data
         self.encoding = encoding
-        self.separator = int(kwargs.get("sep") or 0)
+        self.separator = kwargs.get("sep", 0)
 
     def encode(self) -> str:
         result = "".join(format(c, "08b") for c in self.data)

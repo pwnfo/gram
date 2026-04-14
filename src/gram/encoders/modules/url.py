@@ -13,15 +13,15 @@ def quote_full(content: str, encoding: str = "utf-8") -> str:
 class URLEncoder(Encoder):
     name = "url"
     complete_name = "URL Encoding"
-    usage = "-f plus -f full"
+    options = {"plus": bool, "full": bool}
 
     def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
         self.data = data
         self.encoding = encoding
 
         self.text = data.decode(self.encoding)
-        self.plus = kwargs.get("plus")
-        self.full = kwargs.get("full") is not None
+        self.plus = kwargs.get("plus", False)
+        self.full = kwargs.get("full", False)
 
     def encode(self) -> str:
         if self.full:

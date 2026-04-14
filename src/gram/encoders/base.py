@@ -5,7 +5,21 @@ from typing import Any
 class Encoder(ABC):
     name: str
     complete_name: str
-    usage: str | None = None
+    options: dict[str, type | tuple[str, ...]] = {}
+
+    @classmethod
+    def get_usage(cls) -> str | None:
+        if not cls.options:
+            return None
+        parts = []
+        for key, expected_type in cls.options.items():
+            if isinstance(expected_type, (list, tuple, set)):
+                parts.append(f"-f {key}=[{'|'.join(expected_type)}]")
+            elif expected_type is bool:
+                parts.append(f"-f {key}")
+            else:
+                parts.append(f"-f {key}=N")
+        return " ".join(parts)
 
     def __init__(
         self,

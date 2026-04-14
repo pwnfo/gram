@@ -13,13 +13,12 @@ def full_encode(content: bytes) -> str:
 class QuotedPrintableEncoder(Encoder):
     name = "quopri"
     complete_name = "Quoted-printable"
-    usage = "-f full"
+    options = {"full": bool}
 
     def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
         self.data = data
         self.encoding = encoding
-
-        self.full = kwargs.get("full") is not None
+        self.full = kwargs.get("full", False)
 
     def encode(self) -> str:
         if self.full:

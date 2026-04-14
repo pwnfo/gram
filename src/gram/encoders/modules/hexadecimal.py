@@ -7,13 +7,13 @@ from typing import Any
 class HexadecimalEncoder(Encoder):
     name = "hex"
     complete_name = "Hexadecimal String"
-    usage = "-f sep=N -f upper"
+    options = {"sep": int, "upper": bool}
 
     def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
         self.data = data
         self.encoding = encoding
-        self.separator = int(kwargs.get("sep") or 0)
-        self.uppercase = kwargs.get("upper")
+        self.separator = kwargs.get("sep", 0)
+        self.uppercase = kwargs.get("upper", False)
 
     def encode(self) -> str:
         result = self.data.hex()

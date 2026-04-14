@@ -9,14 +9,14 @@ import base64
 class Base64Encoder(Encoder):
     name = "b64"
     complete_name = "Base64"
-    usage = "-f lbreak=[mime|pem]"
+    options = {"lbreak": ("mime", "pem")}
 
     def __init__(self, data: bytes, encoding: str = "utf-8", **kwargs: Any):
         self.data = data
         self.encoding = encoding
 
         self.lbreak = kwargs.get("lbreak")
-        if isinstance(self.lbreak, str):
+        if self.lbreak is not None:
             self.lbreak = self.lbreak.lower()
 
     def encode(self) -> str:
